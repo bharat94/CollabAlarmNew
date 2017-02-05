@@ -1,6 +1,9 @@
 package com.hackbrown.bharatvaidhyanathan.collabalarmnew;
 
+import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.AlarmClock;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -9,6 +12,14 @@ import android.view.View;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -18,6 +29,7 @@ public class AlarmActivity extends AppCompatActivity {
     private ListView listView1;
     private AlarmAdapter adapter;
     private TextView timeText;
+    private Intent newAlarmIntent;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -48,8 +60,9 @@ public class AlarmActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Intent i = new Intent(AlarmActivity.this, NewAlarm.class);
-                startActivity(i);
+                newAlarmIntent = new Intent(AlarmActivity.this, NewAlarm.class);
+                Thread t = new SearchThread(AlarmActivity.this);
+                t.start();
             }
         });
     }
@@ -61,9 +74,59 @@ public class AlarmActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
+    private class SearchThread extends Thread {
 
+        private Context context;
+
+        public SearchThread(Context context) {
+            this.context = context;
+        }
+
+        @Override
+        public void run() {
+
+            //Thread.sleep(time);
+
+            URL url = null;
+            try {
+                url = new URL("http://138.16.49.170:8080/signup?name=%22Bharat%22&username=%22bharatv%22&password=%22abc123%22");
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+            HttpURLConnection urlConnection = null;
+            try {
+                urlConnection = (HttpURLConnection) url.openConnection();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                InputStream in = new BufferedInputStream(urlConnection.getInputStream());
+                BufferedReader br = new BufferedReader(new InputStreamReader(in));
+                String str;
+                while( (str = br.readLine()) != null){
+                    System.out.println("Str : "+str);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                urlConnection.disconnect();
+                handler.sendEmptyMessage(0);
+            }
+
+        }
+
+        private Handler handler = new Handler() {
+
+            @Override
+            public void handleMessage(Message msg) {
+                //displaySearchResults(search);
+                context.startActivity(newAlarmIntent);
+            }
+        };
+    }
 
 }
+
 
 
 
