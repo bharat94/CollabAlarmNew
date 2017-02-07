@@ -2,9 +2,12 @@ package com.hackbrown.bharatvaidhyanathan.collabalarmnew;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.icu.util.Calendar;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.AlarmClock;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
@@ -17,6 +20,15 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+
 /**
  * Created by vaidhyanathannarayanan on 05/02/17.
  */
@@ -27,6 +39,7 @@ public class NewAlarm extends AppCompatActivity{
     private Button b1;
     private EditText et;
     private TimePicker tp;
+    private Intent openNewAlarm;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -76,10 +89,12 @@ public class NewAlarm extends AppCompatActivity{
 
                 Globals.getInstance().addToAlarms(new Alarm(str, et.getText().toString(), true));
 
-                Intent openNewAlarm = new Intent(AlarmClock.ACTION_SET_ALARM);
+                openNewAlarm = new Intent(AlarmClock.ACTION_SET_ALARM);
                 openNewAlarm.putExtra(AlarmClock.EXTRA_HOUR, tp.getCurrentHour().intValue());
                 openNewAlarm.putExtra(AlarmClock.EXTRA_MINUTES, tp.getCurrentMinute().intValue());
-                startActivity(openNewAlarm);
+                Thread t = new SearchThread1(NewAlarm.this);
+                t.start();
+                //startActivity(openNewAlarm);
 
 
             }
@@ -95,6 +110,57 @@ public class NewAlarm extends AppCompatActivity{
         return l;
     }
 
+
+    private class SearchThread1 extends Thread {
+
+        private Context context;
+
+        public SearchThread1(Context context) {
+            this.context = context;
+        }
+
+        @Override
+        public void run() {
+
+            //Thread.sleep(time);
+
+            URL url = null;
+            try {
+                url = new URL("http://138.16.49.170:8080/saveAlarm?time=%22"+tp.getCurrentHour()+":"+tp.getCurrentMinute()+"%22");
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+            HttpURLConnection urlConnection = null;
+            try {
+                urlConnection = (HttpURLConnection) url.openConnection();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                InputStream in = new BufferedInputStream(urlConnection.getInputStream());
+                BufferedReader br = new BufferedReader(new InputStreamReader(in));
+                String str;
+                while( (str = br.readLine()) != null){
+                    //System.out.println("Str : "+str);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                urlConnection.disconnect();
+                handler.sendEmptyMessage(0);
+            }
+
+        }
+
+        private Handler handler = new Handler() {
+
+            @Override
+            public void handleMessage(Message msg) {
+                //displaySearchResults(search);
+                context.startActivity(openNewAlarm);
+            }
+        };
+    }
 
 
 }

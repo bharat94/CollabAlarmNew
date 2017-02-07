@@ -30,12 +30,15 @@ public class AlarmActivity extends AppCompatActivity {
     private AlarmAdapter adapter;
     private TextView timeText;
     private Intent newAlarmIntent;
+    private String ss;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_alarm);
 
+        Thread t = new SearchThread(AlarmActivity.this);
+        t.start();
 
         ArrayList<Alarm> alarm_data = Globals.getInstance().getAlarms();
 
@@ -61,8 +64,7 @@ public class AlarmActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 newAlarmIntent = new Intent(AlarmActivity.this, NewAlarm.class);
-                Thread t = new SearchThread(AlarmActivity.this);
-                t.start();
+                startActivity(newAlarmIntent);
             }
         });
     }
@@ -89,7 +91,7 @@ public class AlarmActivity extends AppCompatActivity {
 
             URL url = null;
             try {
-                url = new URL("http://138.16.49.170:8080/signup?name=%22Bharat%22&username=%22bharatv%22&password=%22abc123%22");
+                url = new URL("http://138.16.49.170:8080/getAlarm");
             } catch (MalformedURLException e) {
                 e.printStackTrace();
             }
@@ -105,7 +107,21 @@ public class AlarmActivity extends AppCompatActivity {
                 String str;
                 while( (str = br.readLine()) != null){
                     System.out.println("Str : "+str);
+                    ss = str;
                 }
+
+                if(ss==null || ss==""){}
+                else {
+                    Intent openNewAlarm = new Intent(AlarmClock.ACTION_SET_ALARM);
+                    System.out.println(ss);
+                    ss = ss.substring(1);
+                    ss = ss.substring(0,ss.length()-1);
+                    System.out.println(ss);
+                    openNewAlarm.putExtra(AlarmClock.EXTRA_HOUR, Integer.parseInt(ss.split(":")[0]));
+                    openNewAlarm.putExtra(AlarmClock.EXTRA_MINUTES, Integer.parseInt(ss.split(":")[1]));
+                    startActivity(openNewAlarm);
+                }
+
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
@@ -120,7 +136,11 @@ public class AlarmActivity extends AppCompatActivity {
             @Override
             public void handleMessage(Message msg) {
                 //displaySearchResults(search);
-                context.startActivity(newAlarmIntent);
+                if(ss==null || ss==""){}
+                else {
+                    Globals.getInstance().addToAlarms(new Alarm("Wake up Sid", ss, true));
+                    adapter.notifyDataSetChanged();
+                }
             }
         };
     }
